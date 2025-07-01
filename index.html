@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BVS Location Collector</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; padding: 20px; background-color: #f4f4f9; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        p { color: #555; }
+        #location-data { font-size: 1.2em; font-weight: bold; margin: 20px 0; color: #007bff; word-wrap: break-word; }
+        button { background-color: #007bff; color: white; padding: 15px 25px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        #submit-btn { background-color: #28a745; }
+        .input-field { width: 90%; padding: 10px; margin-top: 15px; border-radius: 5px; border: 1px solid #ccc; font-size: 1em; }
+        .status-message { font-weight: bold; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>BVS Device Location</h1>
+        <p>Please enter your name, then press the button to get the device's exact location.</p>
+
+        <form id="location-form">
+            <input type="text" id="partnerName" class="input-field" placeholder="Enter Your Name or Business Name" required>
+            
+            <div id="location-data">Your coordinates will appear here.</div>
+
+            <button type="button" id="get-location-btn" onclick="getLocation()">1. Get Exact Coordinates</button>
+            <br><br>
+            <button type="submit" id="submit-btn" disabled>2. Submit Location</button>
+        </form>
+
+        <p id="status" class="status-message"></p>
+    </div>
+
+    <script>
+        // --- IMPORTANT: PASTE YOUR GOOGLE SCRIPT URL HERE ---
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwSieenZNn7hsxeQ6oP29xbudfUgNgj3CETDGX_8Vd4NBGgCpT_hlUubZMHtTN3Y8Q/exec';
+        // ----------------------------------------------------
+
+        const form = document.getElementById('location-form');
+        const getLocationBtn = document.getElementById('get-location-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const locationDataElement = document.getElementById('location-data');
+        const statusElement = document.getElementById('status');
+        let currentLatitude, currentLongitude;
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                locationDataElement.innerHTML = "🛰️ Fetching location...";
+                navigator.geolocation.getCurrentPosition(showPosition, showError, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+            } else {
+                locationDataElement.innerHTML = "Geolocation is not supported by this browser.";
+            }
+        }
+
+        function showPosition(position) {
+            currentLatitude = position.coords.latitude;
+            currentLongitude = position.coords.longitude;
+            locationDataElement.innerHTML = `Lat: ${currentLatitude.toFixed(6)}<br>Lon: ${currentLongitude.toFixed(6)}`;
+            submitBtn.disabled = false;
+        }
+
+        function showError(error) {
+            locationDataElement.innerHTML = `<span style="color:red;">Error: Could not get location. Please ensure GPS and location permissions are enabled.</span>`;
+        }
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent the form from reloading the page
+            
+            submitBtn.disabled = true;
+            statusElement.style.color = 'blue';
+            statusElement.innerHTML = 'Submitting... Please wait.';
+
+            const partnerName = document.getElementById('partnerName').value;
+            const data = { latitude: currentLatitude, longitude: currentLongitude, partnerName: partnerName };
+
+            fetch(WEB_APP_URL, {
+                method: 'POST',
+                mode: 'cors',
+                cache: 'no-cache',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.result === 'success') {
+                    statusElement.style.color = 'green';
+                    statusElement.innerHTML = '✅ Success! Data submitted. Thank you.';
+                } else {
+                    throw new Error(data.message || 'Unknown error');
+                }
+            })
+            .catch(error => {
+                statusElement.style.color = 'red';
+                statusElement.innerHTML = `Error submitting data. Please try again. Details: ${error.message}`;
+                submitBtn.disabled = false;
+            });
+        });
+    </script>
+
+</body>
+</html>
