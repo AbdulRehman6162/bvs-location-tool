@@ -68,38 +68,48 @@
             locationDataElement.innerHTML = `<span style="color:red;">Error: Could not get location. Please ensure GPS and location permissions are enabled.</span>`;
         }
 
-        form.addEventListener('submit', function(e) {
-            e.preventDefault(); // Prevent the form from reloading the page
-            
-            submitBtn.disabled = true;
-            statusElement.style.color = 'blue';
-            statusElement.innerHTML = 'Submitting... Please wait.';
+form.addEventListener('submit', function(e) {
+    e.preventDefault(); // Prevent the form from reloading the page
 
-            const partnerName = document.getElementById('partnerName').value;
-            const data = { latitude: currentLatitude, longitude: currentLongitude, partnerName: partnerName };
+    submitBtn.disabled = true;
+    statusElement.style.color = 'blue';
+    statusElement.innerHTML = 'Submitting... Please wait.';
 
-            fetch(WEB_APP_URL, {
-                method: 'POST',
-                mode: 'cors',
-                cache: 'no-cache',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.result === 'success') {
-                    statusElement.style.color = 'green';
-                    statusElement.innerHTML = '✅ Success! Data submitted. Thank you.';
-                } else {
-                    throw new Error(data.message || 'Unknown error');
-                }
-            })
-            .catch(error => {
-                statusElement.style.color = 'red';
-                statusElement.innerHTML = `Error submitting data. Please try again. Details: ${error.message}`;
-                submitBtn.disabled = false;
-            });
-        });
+    const partnerName = document.getElementById('partnerName').value;
+    const data = { latitude: currentLatitude, longitude: currentLongitude, partnerName: partnerName };
+
+    fetch(WEB_APP_URL, {
+        method: 'POST',
+        // We remove 'cors' mode and let the browser handle it, which can fix redirect issues
+        cache: 'no-cache',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        redirect: 'follow' // Explicitly tell the browser to follow the redirect
+    })
+    .then(response => {
+        // Check if the response is ok (status in the range 200-299)
+        if (!response.ok) {
+            // If not, we throw an error with the status
+            throw new Error(`Network response was not ok, status: ${response.status}`);
+        }
+        return response.json(); // If ok, we try to parse it as JSON
+    })
+    .then(data => {
+        if (data.result === 'success') {
+            statusElement.style.color = 'green';
+            statusElement.innerHTML = '✅ Success! Data submitted. Thank you.';
+        } else {
+            // This will catch errors reported by our Google Script
+            throw new Error(data.message || 'Unknown error from script');
+        }
+    })
+    .catch(error => {
+        // This will catch network errors (like "Failed to fetch") or errors we threw
+        statusElement.style.color = 'red';
+        statusElement.innerHTML = `Error submitting data. Details: ${error.message}`;
+        submitBtn.disabled = false;
+    });
+});
     </script>
 
 </body>
