@@ -23,12 +23,14 @@
         <p>Please enter your name, then press the button to get the device's exact location.</p>
 
         <form id="location-form" method="GET" action="https://script.google.com/macros/s/AKfycbwOpc7Di6b1ONVwFSc0xH_cUhPvTwQLJscWf5P03-aa7ULljOi4KXk8hGhITUZeLdQsXQ/exec">
-
+            
             <input type="text" name="pName" class="input-field" placeholder="Enter Your Name or Business Name" required>
-
+            
+            <input type="number" name="imei" class="input-field" placeholder="Enter BVS Device IMEI" required>
+            
             <input type="hidden" id="lat-field" name="lat">
             <input type="hidden" id="lon-field" name="lon">
-
+            
             <div id="location-display">Your coordinates will appear here.</div>
 
             <button type="button" id="get-location-btn" onclick="getLocation()">1. Get Exact Coordinates</button>
@@ -55,14 +57,14 @@
         function showPosition(position) {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
-
+            
             // Show the coordinates to the user
             locationDisplay.innerHTML = `Lat: ${lat.toFixed(6)}<br>Lon: ${lon.toFixed(6)}`;
-
+            
             // Put the coordinates into the hidden form fields
             latField.value = lat;
             lonField.value = lon;
-
+            
             // Enable the submit button
             submitBtn.disabled = false;
         }
