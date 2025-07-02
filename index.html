@@ -9,12 +9,11 @@
         .container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         h1 { color: #333; }
         p { color: #555; }
-        #location-data { font-size: 1.2em; font-weight: bold; margin: 20px 0; color: #007bff; word-wrap: break-word; }
+        #location-display { font-size: 1.2em; font-weight: bold; margin: 20px 0; color: #007bff; word-wrap: break-word; }
         button { background-color: #007bff; color: white; padding: 15px 25px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.2s; }
         button:disabled { background-color: #cccccc; cursor: not-allowed; }
         #submit-btn { background-color: #28a745; }
         .input-field { width: 90%; padding: 10px; margin-top: 15px; border-radius: 5px; border: 1px solid #ccc; font-size: 1em; }
-        .status-message { font-weight: bold; margin-top: 15px; }
     </style>
 </head>
 <body>
@@ -23,94 +22,54 @@
         <h1>BVS Device Location</h1>
         <p>Please enter your name, then press the button to get the device's exact location.</p>
 
-        <form id="location-form">
-            <input type="text" id="partnerName" class="input-field" placeholder="Enter Your Name or Business Name" required>
-            
-            <div id="location-data">Your coordinates will appear here.</div>
+        <form id="location-form" method="GET" action="https://script.google.com/macros/s/AKfycbwOpc7Di6b1ONVwFSc0xH_cUhPvTwQLJscWf5P03-aa7ULljOi4KXk8hGhITUZeLdQsXQ/exec">
+
+            <input type="text" name="pName" class="input-field" placeholder="Enter Your Name or Business Name" required>
+
+            <input type="hidden" id="lat-field" name="lat">
+            <input type="hidden" id="lon-field" name="lon">
+
+            <div id="location-display">Your coordinates will appear here.</div>
 
             <button type="button" id="get-location-btn" onclick="getLocation()">1. Get Exact Coordinates</button>
             <br><br>
             <button type="submit" id="submit-btn" disabled>2. Submit Location</button>
         </form>
-
-        <p id="status" class="status-message"></p>
     </div>
 
     <script>
-        // --- IMPORTANT: PASTE YOUR GOOGLE SCRIPT URL HERE ---
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwOpc7Di6b1ONVwFSc0xH_cUhPvTwQLJscWf5P03-aa7ULljOi4KXk8hGhITUZeLdQsXQ/exec';
-        // ----------------------------------------------------
-
-        const form = document.getElementById('location-form');
-        const getLocationBtn = document.getElementById('get-location-btn');
         const submitBtn = document.getElementById('submit-btn');
-        const locationDataElement = document.getElementById('location-data');
-        const statusElement = document.getElementById('status');
-        let currentLatitude, currentLongitude;
+        const locationDisplay = document.getElementById('location-display');
+        const latField = document.getElementById('lat-field');
+        const lonField = document.getElementById('lon-field');
 
         function getLocation() {
             if (navigator.geolocation) {
-                locationDataElement.innerHTML = "🛰️ Fetching location...";
-                navigator.geolocation.getCurrentPosition(showPosition, showError, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+                locationDisplay.innerHTML = "🛰️ Fetching location...";
+                navigator.geolocation.getCurrentPosition(showPosition, showError, { enableHighAccuracy: true });
             } else {
-                locationDataElement.innerHTML = "Geolocation is not supported by this browser.";
+                locationDisplay.innerHTML = "Geolocation is not supported by this browser.";
             }
         }
 
         function showPosition(position) {
-            currentLatitude = position.coords.latitude;
-            currentLongitude = position.coords.longitude;
-            locationDataElement.innerHTML = `Lat: ${currentLatitude.toFixed(6)}<br>Lon: ${currentLongitude.toFixed(6)}`;
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            // Show the coordinates to the user
+            locationDisplay.innerHTML = `Lat: ${lat.toFixed(6)}<br>Lon: ${lon.toFixed(6)}`;
+
+            // Put the coordinates into the hidden form fields
+            latField.value = lat;
+            lonField.value = lon;
+
+            // Enable the submit button
             submitBtn.disabled = false;
         }
 
         function showError(error) {
-            locationDataElement.innerHTML = `<span style="color:red;">Error: Could not get location. Please ensure GPS and location permissions are enabled.</span>`;
+            locationDisplay.innerHTML = `<span style="color:red;">Error: Could not get location. Please ensure GPS and location permissions are enabled.</span>`;
         }
-
-form.addEventListener('submit', function(e) {
-    e.preventDefault(); // Prevent the form from reloading the page
-
-    submitBtn.disabled = true;
-    statusElement.style.color = 'blue';
-    statusElement.innerHTML = 'Submitting... Please wait.';
-
-    const partnerName = document.getElementById('partnerName').value;
-    const data = { latitude: currentLatitude, longitude: currentLongitude, partnerName: partnerName };
-
-    fetch(WEB_APP_URL, {
-        method: 'POST',
-        // We remove 'cors' mode and let the browser handle it, which can fix redirect issues
-        cache: 'no-cache',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-        redirect: 'follow' // Explicitly tell the browser to follow the redirect
-    })
-    .then(response => {
-        // Check if the response is ok (status in the range 200-299)
-        if (!response.ok) {
-            // If not, we throw an error with the status
-            throw new Error(`Network response was not ok, status: ${response.status}`);
-        }
-        return response.json(); // If ok, we try to parse it as JSON
-    })
-    .then(data => {
-        if (data.result === 'success') {
-            statusElement.style.color = 'green';
-            statusElement.innerHTML = '✅ Success! Data submitted. Thank you.';
-        } else {
-            // This will catch errors reported by our Google Script
-            throw new Error(data.message || 'Unknown error from script');
-        }
-    })
-    .catch(error => {
-        // This will catch network errors (like "Failed to fetch") or errors we threw
-        statusElement.style.color = 'red';
-        statusElement.innerHTML = `Error submitting data. Details: ${error.message}`;
-        submitBtn.disabled = false;
-    });
-});
     </script>
-
 </body>
 </html>
