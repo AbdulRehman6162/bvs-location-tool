@@ -58,8 +58,8 @@
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
             
-            // Show the coordinates to the user
-            locationDisplay.innerHTML = `Lat: ${lat.toFixed(6)}<br>Lon: ${lon.toFixed(6)}`;
+            // Show the coordinates to the user with full precision
+            locationDisplay.innerHTML = `Lat: ${lat}<br>Lon: ${lon}`;
             
             // Put the coordinates into the hidden form fields
             latField.value = lat;
